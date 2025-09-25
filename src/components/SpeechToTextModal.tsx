@@ -61,8 +61,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
       recognition.interimResults = !isMobile;
       recognition.lang = 'en-US';
       
-      // Add additional configuration to help with network issues
-      recognition.maxAlternatives = 1;
+      // Additional configuration for better speech recognition
       
       // Mobile-specific logging
       if (isMobile) {
