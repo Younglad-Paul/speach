@@ -17,13 +17,8 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Debug information
-      console.log('Speech Recognition Debug:', {
-        isSecureContext: window.isSecureContext,
-        protocol: window.location.protocol,
-        hostname: window.location.hostname,
-        href: window.location.href
-      });
+      // Clear any existing errors first
+      setError(null);
 
       // Check if we're in a secure context
       const isSecure = window.isSecureContext || window.location.protocol === 'https:';
@@ -97,6 +92,9 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
       };
 
       recognitionRef.current = recognition;
+      
+      // If we get here, speech recognition is ready
+      console.log('Speech recognition initialized successfully');
     }
   }, []);
 
