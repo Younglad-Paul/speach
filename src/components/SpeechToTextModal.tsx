@@ -284,9 +284,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X size={24} />
           </button>
         </div>
 
@@ -336,7 +334,10 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
                 )}
                 {error.includes('Brave') && (
                   <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
-                    <p className="font-medium mb-2">🔒 Brave Browser Privacy Settings:</p>
+                    <p className="font-medium mb-2 flex items-center gap-2">
+                      <Shield size={16} />
+                      Brave Browser Privacy Settings:
+                    </p>
                     <p className="mb-2">Brave's privacy features may block speech recognition. Try these steps:</p>
                     <ol className="list-decimal list-inside space-y-1">
                       <li>Click the <strong>shield icon</strong> in the address bar</li>
@@ -361,7 +362,8 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
                     onClick={retrySpeechRecognition}
                     className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded transition-colors"
                   >
-                    🔄 Retry Speech Recognition
+                    <RotateCcw size={16} className="inline mr-2" />
+                    Retry Speech Recognition
                   </button>
                 </div>
               </div>
@@ -372,8 +374,9 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
                   {isListening ? 'Listening...' : 'Ready to listen'}
                 </span>
                 {/android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase()) && (
-                  <span className="text-xs text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
-                    📱 Mobile Mode
+                  <span className="text-xs text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded flex items-center gap-1">
+                    <Mic size={12} />
+                    Mobile Mode
                   </span>
                 )}
               </div>
@@ -405,13 +408,24 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
                   : 'bg-blue-500 hover:bg-blue-600 text-white'
               } ${error && !error.includes('Microphone access denied') ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {isListening ? 'Stop Listening' : 'Start Listening'}
+              {isListening ? (
+                <>
+                  <Square size={16} className="inline mr-2" />
+                  Stop Listening
+                </>
+              ) : (
+                <>
+                  <Play size={16} className="inline mr-2" />
+                  Start Listening
+                </>
+              )}
             </button>
             
             <button
               onClick={clearTranscript}
               className="px-4 sm:px-6 py-2 sm:py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm sm:text-base"
             >
+              <Trash2 size={16} className="inline mr-2" />
               Clear
             </button>
             
@@ -420,6 +434,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
               disabled={!transcript.trim() && !interimTranscript.trim()}
               className="px-4 sm:px-6 py-2 sm:py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
+              <Download size={16} className="inline mr-2" />
               Insert Text
             </button>
           </div>
