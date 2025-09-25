@@ -16,6 +16,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
   const [retryCount, setRetryCount] = useState(0);
   const [lastProcessedText, setLastProcessedText] = useState('');
   const [lastProcessedTime, setLastProcessedTime] = useState(0);
+  const [userStopped, setUserStopped] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
@@ -158,11 +159,11 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
       recognition.onend = () => {
         setIsListening(false);
         
-        // On mobile, automatically restart if continuous was disabled
-        if (isMobile && !recognition.continuous) {
+        // On mobile, automatically restart if continuous was disabled AND user didn't manually stop
+        if (isMobile && !recognition.continuous && !userStopped) {
           // Small delay to prevent immediate restart
           setTimeout(() => {
-            if (recognitionRef.current) {
+            if (recognitionRef.current && !userStopped) {
               try {
                 recognitionRef.current.start();
               } catch (err) {
@@ -184,6 +185,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
   const startListening = () => {
     if (recognitionRef.current && !isListening) {
       setError(null);
+      setUserStopped(false); // Reset the user stopped flag
       recognitionRef.current.start();
     }
   };
@@ -203,6 +205,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
 
   const stopListening = () => {
     if (recognitionRef.current && isListening) {
+      setUserStopped(true); // Mark that user manually stopped
       recognitionRef.current.stop();
       
       // On mobile, also abort to prevent auto-restart
@@ -222,6 +225,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
     setInterimTranscript('');
     setLastProcessedText('');
     setLastProcessedTime(0);
+    setUserStopped(false);
   };
 
   const insertText = () => {
