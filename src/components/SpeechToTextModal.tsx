@@ -18,6 +18,8 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
   const [lastProcessedTime, setLastProcessedTime] = useState(0);
   const [userStopped, setUserStopped] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const userStoppedRef = useRef(false);
+  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -159,11 +161,17 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
       recognition.onend = () => {
         setIsListening(false);
         
+        // Clear any existing restart timeout
+        if (restartTimeoutRef.current) {
+          clearTimeout(restartTimeoutRef.current);
+          restartTimeoutRef.current = null;
+        }
+        
         // On mobile, automatically restart if continuous was disabled AND user didn't manually stop
-        if (isMobile && !recognition.continuous && !userStopped) {
+        if (isMobile && !recognition.continuous && !userStoppedRef.current) {
           // Small delay to prevent immediate restart
-          setTimeout(() => {
-            if (recognitionRef.current && !userStopped) {
+          restartTimeoutRef.current = setTimeout(() => {
+            if (recognitionRef.current && !userStoppedRef.current) {
               try {
                 recognitionRef.current.start();
               } catch (err) {
@@ -171,6 +179,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
                 console.log('Mobile auto-restart failed:', err);
               }
             }
+            restartTimeoutRef.current = null;
           }, 100);
         }
       };
@@ -186,6 +195,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
     if (recognitionRef.current && !isListening) {
       setError(null);
       setUserStopped(false); // Reset the user stopped flag
+      userStoppedRef.current = false; // Reset the ref as well
       recognitionRef.current.start();
     }
   };
@@ -205,18 +215,31 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
 
   const stopListening = () => {
     if (recognitionRef.current && isListening) {
-      setUserStopped(true); // Mark that user manually stopped
-      recognitionRef.current.stop();
+      // Immediately set both state and ref to prevent any auto-restart
+      setUserStopped(true);
+      userStoppedRef.current = true;
+      setIsListening(false);
       
-      // On mobile, also abort to prevent auto-restart
-      const isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
-      if (isMobile) {
-        try {
-          recognitionRef.current.abort();
-        } catch (err) {
-          // Ignore abort errors
-        }
+      // Clear any pending restart timeout
+      if (restartTimeoutRef.current) {
+        clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = null;
       }
+      
+      // Try both stop and abort methods for maximum reliability
+      try {
+        recognitionRef.current.stop();
+      } catch (err) {
+        console.log('Stop failed:', err);
+      }
+      
+      try {
+        recognitionRef.current.abort();
+      } catch (err) {
+        console.log('Abort failed:', err);
+      }
+      
+      console.log('User manually stopped speech recognition');
     }
   };
 
@@ -226,6 +249,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
     setLastProcessedText('');
     setLastProcessedTime(0);
     setUserStopped(false);
+    userStoppedRef.current = false;
   };
 
   const insertText = () => {
