@@ -21,13 +21,15 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
       // Clear any existing errors first
       setError(null);
 
-      // Detect browser type
+      // Detect browser type and device
       const isBrave = (navigator as any).brave && (navigator as any).brave.isBrave;
       const userAgent = navigator.userAgent.toLowerCase();
       const isChrome = userAgent.includes('chrome') && !userAgent.includes('edg');
       const isEdge = userAgent.includes('edg');
       const isFirefox = userAgent.includes('firefox');
       const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome');
+      const isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      const isAndroid = /android/i.test(userAgent);
 
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       
@@ -50,12 +52,19 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
       }
 
       const recognition = new SpeechRecognition();
-      recognition.continuous = true;
+      
+      // Mobile devices handle continuous differently - disable to prevent duplicates
+      recognition.continuous = !isMobile;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
       
       // Add additional configuration to help with network issues
       recognition.maxAlternatives = 1;
+      
+      // Mobile-specific logging
+      if (isMobile) {
+        console.log('Mobile device detected - using non-continuous mode to prevent duplicates');
+      }
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -76,7 +85,9 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
         }
 
         if (finalTranscript) {
-          setTranscript(prev => prev + finalTranscript);
+          // On mobile, add space between words to prevent concatenation issues
+          const formattedTranscript = isMobile ? finalTranscript + ' ' : finalTranscript;
+          setTranscript(prev => prev + formattedTranscript);
           setInterimTranscript('');
         } else {
           setInterimTranscript(interimTranscript);
@@ -125,6 +136,21 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
 
       recognition.onend = () => {
         setIsListening(false);
+        
+        // On mobile, automatically restart if continuous was disabled
+        if (isMobile && !recognition.continuous) {
+          // Small delay to prevent immediate restart
+          setTimeout(() => {
+            if (recognitionRef.current) {
+              try {
+                recognitionRef.current.start();
+              } catch (err) {
+                // Ignore restart errors on mobile
+                console.log('Mobile auto-restart failed:', err);
+              }
+            }
+          }, 100);
+        }
       };
 
       recognitionRef.current = recognition;
@@ -157,6 +183,16 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
   const stopListening = () => {
     if (recognitionRef.current && isListening) {
       recognitionRef.current.stop();
+      
+      // On mobile, also abort to prevent auto-restart
+      const isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
+      if (isMobile) {
+        try {
+          recognitionRef.current.abort();
+        } catch (err) {
+          // Ignore abort errors
+        }
+      }
     }
   };
 
@@ -259,6 +295,11 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   {isListening ? 'Listening...' : 'Ready to listen'}
                 </span>
+                {/android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase()) && (
+                  <span className="text-xs text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
+                    📱 Mobile Mode
+                  </span>
+                )}
               </div>
             )}
           </div>
