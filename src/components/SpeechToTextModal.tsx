@@ -14,6 +14,8 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
   const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [lastProcessedText, setLastProcessedText] = useState('');
+  const [lastProcessedTime, setLastProcessedTime] = useState(0);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
@@ -55,7 +57,8 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
       
       // Mobile devices handle continuous differently - disable to prevent duplicates
       recognition.continuous = !isMobile;
-      recognition.interimResults = true;
+      // Disable interim results on mobile to prevent rapid-fire duplicate events
+      recognition.interimResults = !isMobile;
       recognition.lang = 'en-US';
       
       // Add additional configuration to help with network issues
@@ -63,7 +66,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
       
       // Mobile-specific logging
       if (isMobile) {
-        console.log('Mobile device detected - using non-continuous mode to prevent duplicates');
+        console.log('Mobile device detected - using non-continuous mode and no interim results to prevent duplicates');
       }
 
       recognition.onstart = () => {
@@ -85,6 +88,25 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
         }
 
         if (finalTranscript) {
+          const currentTime = Date.now();
+          const cleanTranscript = finalTranscript.trim().toLowerCase();
+          
+          // Enhanced duplicate detection for mobile devices
+          if (isMobile) {
+            // Check if this is the same text processed recently (within 2 seconds)
+            const timeDiff = currentTime - lastProcessedTime;
+            const isRecentDuplicate = timeDiff < 2000 && lastProcessedText.includes(cleanTranscript);
+            
+            if (isRecentDuplicate) {
+              console.log('Duplicate text detected on mobile, skipping:', cleanTranscript);
+              return;
+            }
+            
+            // Update tracking variables
+            setLastProcessedText(prev => prev + cleanTranscript + ' ');
+            setLastProcessedTime(currentTime);
+          }
+          
           // On mobile, add space between words to prevent concatenation issues
           const formattedTranscript = isMobile ? finalTranscript + ' ' : finalTranscript;
           setTranscript(prev => prev + formattedTranscript);
@@ -199,6 +221,8 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
   const clearTranscript = () => {
     setTranscript('');
     setInterimTranscript('');
+    setLastProcessedText('');
+    setLastProcessedTime(0);
   };
 
   const insertText = () => {
