@@ -13,6 +13,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
@@ -31,6 +32,9 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
+      
+      // Add additional configuration to help with network issues
+      recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -96,7 +100,21 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
 
   const startListening = () => {
     if (recognitionRef.current && !isListening) {
+      setError(null);
       recognitionRef.current.start();
+    }
+  };
+
+  const retrySpeechRecognition = () => {
+    setRetryCount(prev => prev + 1);
+    setError(null);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.start();
+      } catch (err) {
+        console.log('Retry attempt:', retryCount + 1);
+        setError('Still having network issues. Try refreshing the page or using a different browser.');
+      }
     }
   };
 
@@ -175,6 +193,14 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
                       <li>Try refreshing the page</li>
                       <li>Speech recognition uses Google's servers - they might be temporarily unavailable</li>
                     </ul>
+                    <div className="mt-3">
+                      <button
+                        onClick={retrySpeechRecognition}
+                        className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded transition-colors"
+                      >
+                        Retry ({retryCount}/3)
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
