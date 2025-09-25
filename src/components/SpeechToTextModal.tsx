@@ -21,11 +21,32 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
       // Clear any existing errors first
       setError(null);
 
+      // Detect browser type
+      const isBrave = (navigator as any).brave && (navigator as any).brave.isBrave;
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isChrome = userAgent.includes('chrome') && !userAgent.includes('edg');
+      const isEdge = userAgent.includes('edg');
+      const isFirefox = userAgent.includes('firefox');
+      const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome');
+
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       
       if (!SpeechRecognition) {
-        setError('Speech recognition is not supported in this browser. Please use Chrome or Edge.');
+        let browserMessage = 'Speech recognition is not supported in this browser.';
+        if (isFirefox) {
+          browserMessage = 'Speech recognition is not supported in Firefox. Please use Chrome, Edge, or Brave.';
+        } else if (isSafari) {
+          browserMessage = 'Speech recognition is not supported in Safari. Please use Chrome, Edge, or Brave.';
+        } else {
+          browserMessage = 'Speech recognition is not supported in this browser. Please use Chrome, Edge, or Brave.';
+        }
+        setError(browserMessage);
         return;
+      }
+
+      // Brave-specific warnings
+      if (isBrave) {
+        console.log('Brave browser detected - checking privacy settings');
       }
 
       const recognition = new SpeechRecognition();
@@ -63,19 +84,34 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
       };
 
       recognition.onerror = (event) => {
+        // Detect browser for specific error messages
+        const isBrave = (navigator as any).brave && (navigator as any).brave.isBrave;
+        
         let errorMessage = '';
         switch (event.error) {
           case 'not-allowed':
-            errorMessage = 'Microphone access denied. Please allow microphone permissions and try again.';
+            if (isBrave) {
+              errorMessage = 'Microphone access denied. In Brave: Click the shield icon → Site settings → Allow microphone access.';
+            } else {
+              errorMessage = 'Microphone access denied. Please allow microphone permissions and try again.';
+            }
             break;
           case 'no-speech':
             errorMessage = 'No speech detected. Please try speaking louder or closer to the microphone.';
             break;
           case 'network':
-            errorMessage = 'Network error. This might be temporary. Please try again in a few seconds.';
+            if (isBrave) {
+              errorMessage = 'Network error. Brave may be blocking Google services. Try: Brave settings → Privacy → Disable "Block trackers & ads" for this site.';
+            } else {
+              errorMessage = 'Network error. This might be temporary. Please try again in a few seconds.';
+            }
             break;
           case 'service-not-allowed':
-            errorMessage = 'Speech recognition service not allowed. Please try again.';
+            if (isBrave) {
+              errorMessage = 'Speech service blocked. In Brave: Click shield icon → Turn off "Block trackers & ads" for this site.';
+            } else {
+              errorMessage = 'Speech recognition service not allowed. Please try again.';
+            }
             break;
           case 'aborted':
             errorMessage = 'Speech recognition was interrupted. Please try again.';
@@ -201,6 +237,19 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
                         Retry ({retryCount}/3)
                       </button>
                     </div>
+                  </div>
+                )}
+                {error.includes('Brave') && (
+                  <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
+                    <p className="font-medium mb-2">🔒 Brave Browser Privacy Settings:</p>
+                    <p className="mb-2">Brave's privacy features may block speech recognition. Try these steps:</p>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>Click the <strong>shield icon</strong> in the address bar</li>
+                      <li>Turn off <strong>"Block trackers & ads"</strong> for this site</li>
+                      <li>Allow <strong>microphone access</strong> when prompted</li>
+                      <li>Refresh the page and try again</li>
+                    </ol>
+                    <p className="mt-2 text-xs opacity-75">Alternative: Try Chrome or Edge for best compatibility</p>
                   </div>
                 )}
               </div>
