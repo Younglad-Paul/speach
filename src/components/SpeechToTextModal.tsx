@@ -20,13 +20,6 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
       // Clear any existing errors first
       setError(null);
 
-      // Check if we're in a secure context
-      const isSecure = window.isSecureContext || window.location.protocol === 'https:';
-      if (!isSecure) {
-        setError(`Speech recognition requires HTTPS. Current protocol: ${window.location.protocol}`);
-        return;
-      }
-
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       
       if (!SpeechRecognition) {
@@ -75,7 +68,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
             errorMessage = 'No speech detected. Please try speaking louder or closer to the microphone.';
             break;
           case 'network':
-            errorMessage = 'Speech recognition requires HTTPS. Please use a secure connection.';
+            errorMessage = 'Network error. Please check your internet connection and try again.';
             break;
           case 'service-not-allowed':
             errorMessage = 'Speech recognition service not allowed. Please try again.';
@@ -160,23 +153,14 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
                     </ol>
                   </div>
                 )}
-                {(error.includes('HTTPS') || error.includes('secure connection')) && (
+                {error.includes('Microphone access denied') && (
                   <div className="text-xs text-red-500 dark:text-red-400">
-                    <p className="font-medium mb-2">Troubleshooting:</p>
-                    <p>If you're seeing this error on Vercel, try these steps:</p>
-                    <ul className="list-disc list-inside space-y-1 mt-1">
-                      <li><strong>Hard refresh:</strong> Press Ctrl+F5 (Windows) or Cmd+Shift+R (Mac)</li>
-                      <li><strong>Clear cache:</strong> Clear your browser cache and cookies</li>
-                      <li><strong>Try incognito:</strong> Open the site in incognito/private mode</li>
-                      <li><strong>Different browser:</strong> Try Chrome, Edge, or Firefox</li>
-                      <li><strong>Check URL:</strong> Make sure you're using https:// (not http://)</li>
-                    </ul>
-                    <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
-                      <p className="font-medium text-blue-700 dark:text-blue-300">Still having issues?</p>
-                      <p className="text-blue-600 dark:text-blue-400 text-xs mt-1">
-                        The app is deployed on Vercel with HTTPS. If speech recognition still doesn't work, try refreshing the page or using a different browser.
-                      </p>
-                    </div>
+                    <p className="font-medium mb-2">To fix this:</p>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>Click the microphone icon in your browser's address bar</li>
+                      <li>Select "Allow" for microphone access</li>
+                      <li>Refresh the page and try again</li>
+                    </ol>
                   </div>
                 )}
               </div>
