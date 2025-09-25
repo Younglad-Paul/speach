@@ -68,13 +68,16 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
             errorMessage = 'No speech detected. Please try speaking louder or closer to the microphone.';
             break;
           case 'network':
-            errorMessage = 'Network error. Please check your internet connection and try again.';
+            errorMessage = 'Network error. This might be temporary. Please try again in a few seconds.';
             break;
           case 'service-not-allowed':
             errorMessage = 'Speech recognition service not allowed. Please try again.';
             break;
+          case 'aborted':
+            errorMessage = 'Speech recognition was interrupted. Please try again.';
+            break;
           default:
-            errorMessage = `Speech recognition error: ${event.error}`;
+            errorMessage = `Speech recognition error: ${event.error}. Please try again.`;
         }
         setError(errorMessage);
         setIsListening(false);
@@ -161,6 +164,17 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
                       <li>Select "Allow" for microphone access</li>
                       <li>Refresh the page and try again</li>
                     </ol>
+                  </div>
+                )}
+                {error.includes('Network error') && (
+                  <div className="text-xs text-red-500 dark:text-red-400">
+                    <p className="font-medium mb-2">Network issues can be temporary:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>Wait a few seconds and try again</li>
+                      <li>Check your internet connection</li>
+                      <li>Try refreshing the page</li>
+                      <li>Speech recognition uses Google's servers - they might be temporarily unavailable</li>
+                    </ul>
                   </div>
                 )}
               </div>
