@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { X, Mic, MicOff, Play, Square, RotateCcw, Download, Trash2, Shield, AlertTriangle } from 'lucide-react';
 
 interface SpeechToTextModalProps {
   isOpen: boolean;
@@ -203,12 +204,21 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
   const retrySpeechRecognition = () => {
     setRetryCount(prev => prev + 1);
     setError(null);
+    setUserStopped(false);
+    userStoppedRef.current = false;
+    
+    // Clear any pending restart timeout
+    if (restartTimeoutRef.current) {
+      clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = null;
+    }
+    
     if (recognitionRef.current) {
       try {
         recognitionRef.current.start();
       } catch (err) {
         console.log('Retry attempt:', retryCount + 1);
-        setError('Still having network issues. Try refreshing the page or using a different browser.');
+        setError('Still having issues. Try refreshing the page or using a different browser.');
       }
     }
   };
@@ -263,10 +273,10 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col my-2 sm:my-8">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Speech to Text
           </h2>
@@ -281,7 +291,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6 flex flex-col">
+        <div className="flex-1 p-4 sm:p-6 flex flex-col overflow-y-auto">
           {/* Status */}
           <div className="mb-6">
             {error ? (
@@ -295,16 +305,14 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
                       <li>Select "Allow" for microphone access</li>
                       <li>Refresh the page and try again</li>
                     </ol>
-                  </div>
-                )}
-                {error.includes('Microphone access denied') && (
-                  <div className="text-xs text-red-500 dark:text-red-400">
-                    <p className="font-medium mb-2">To fix this:</p>
-                    <ol className="list-decimal list-inside space-y-1">
-                      <li>Click the microphone icon in your browser's address bar</li>
-                      <li>Select "Allow" for microphone access</li>
-                      <li>Refresh the page and try again</li>
-                    </ol>
+                    <div className="mt-3">
+                      <button
+                        onClick={retrySpeechRecognition}
+                        className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors"
+                      >
+                        Retry Speech Recognition
+                      </button>
+                    </div>
                   </div>
                 )}
                 {error.includes('Network error') && (
@@ -337,8 +345,25 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
                       <li>Refresh the page and try again</li>
                     </ol>
                     <p className="mt-2 text-xs opacity-75">Alternative: Try Chrome or Edge for best compatibility</p>
+                    <div className="mt-3">
+                      <button
+                        onClick={retrySpeechRecognition}
+                        className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs rounded transition-colors"
+                      >
+                        Retry Speech Recognition
+                      </button>
+                    </div>
                   </div>
                 )}
+                {/* General retry button for any error */}
+                <div className="mt-4 pt-3 border-t border-red-200 dark:border-red-800">
+                  <button
+                    onClick={retrySpeechRecognition}
+                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded transition-colors"
+                  >
+                    🔄 Retry Speech Recognition
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-3">
@@ -356,8 +381,8 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
           </div>
 
           {/* Transcript Display */}
-          <div className="flex-1 mb-6">
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 min-h-[200px] max-h-[300px] overflow-y-auto">
+          <div className="flex-1 mb-4 sm:mb-6">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4 min-h-[150px] sm:min-h-[200px] max-h-[250px] sm:max-h-[300px] overflow-y-auto">
               <div className="text-gray-900 dark:text-white whitespace-pre-wrap">
                 {transcript}
                 {interimTranscript && (
@@ -370,11 +395,11 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
           </div>
 
           {/* Controls */}
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3 flex-wrap">
             <button
               onClick={isListening ? stopListening : startListening}
               disabled={!!error && !error.includes('Microphone access denied')}
-              className={`flex-1 py-3 px-6 rounded-lg font-medium transition-all ${
+              className={`flex-1 py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-medium transition-all text-sm sm:text-base ${
                 isListening
                   ? 'bg-red-500 hover:bg-red-600 text-white'
                   : 'bg-blue-500 hover:bg-blue-600 text-white'
@@ -385,7 +410,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
             
             <button
               onClick={clearTranscript}
-              className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="px-4 sm:px-6 py-2 sm:py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm sm:text-base"
             >
               Clear
             </button>
@@ -393,7 +418,7 @@ const SpeechToTextModal = ({ isOpen, onClose, onTextUpdate }: SpeechToTextModalP
             <button
               onClick={insertText}
               disabled={!transcript.trim() && !interimTranscript.trim()}
-              className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 sm:px-6 py-2 sm:py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
               Insert Text
             </button>
